@@ -4,7 +4,8 @@ import { createServerFn } from '@tanstack/react-start';
 
 const getFeatureOnServer = createServerFn({ method: 'GET' })
   .inputValidator((featureId: string) => featureId)
-  .handler(({ data: featureId }) => {
+  .handler(async ({ data: featureId }) => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     return getFeatureById(featureId);
   });
 
@@ -22,6 +23,9 @@ export const Route = createFileRoute('/feature/$featureId')({
   },
   notFoundComponent: () => <p>Dieses Feature existiert nicht.</p>,
   component: RouteComponent,
+  pendingComponent: () => (
+    <div className="animate-pulse">Loading Feature...</div>
+  ),
 });
 
 function RouteComponent() {
