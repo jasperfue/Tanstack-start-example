@@ -2,13 +2,25 @@ import { createFileRoute, useRouter, Link } from '@tanstack/react-router';
 import { getFeatures, createFeature } from '../utils/mock-db';
 import { createServerFn } from '@tanstack/react-start';
 import { useState } from 'react';
+import { z } from 'zod';
 
-// 1. Define Server Function
-const fetchFeatures = createServerFn({ method: 'GET' }).handler(async () => {
-  const data = await getFeatures();
-  console.log('Fetching on server:', data.length);
-  return data;
-});
+// UPDATED: Server Function with filtering logic
+const fetchFeatures = createServerFn({ method: 'GET' })
+  .inputValidator((search: string | undefined) => search) // Validate input
+  .handler(async ({ data: search }) => {
+    const data = await getFeatures();
+
+    // Simulate DB filtering on the server
+    if (search) {
+      console.log(`Filtering by: ${search}`);
+      return data.filter((f) =>
+        f.title.toLowerCase().includes(search.toLowerCase()),
+      );
+    }
+
+    console.log('Fetching all features');
+    return data;
+  });
 
 // NEW: Server Function for mutation
 const addFeatureFn = createServerFn({ method: 'POST' })
@@ -18,21 +30,47 @@ const addFeatureFn = createServerFn({ method: 'POST' })
     await createFeature(title);
   });
 
+const searchSchema = z.object({
+  query: z.string().optional(),
+});
+
 // 2. Configure Route
 export const Route = createFileRoute('/')({
-  loader: async () => await fetchFeatures(),
+  validateSearch: (search) => searchSchema.parse(search),
+  loaderDeps: ({ search: { query } }) => ({ query }),
+  loader: async ({ deps }) => await fetchFeatures({ data: deps.query }),
   component: FeatureBoard,
 });
 
 function FeatureBoard() {
   const features = Route.useLoaderData();
   const router = useRouter();
+
+  const { query } = Route.useSearch();
+  const navigate = Route.useNavigate();
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   return (
     <div className="p-4 max-w-lg mx-auto">
       <h1 className="text-2xl font-bold mb-4">Feature Board</h1>
+
+      {/* NEW: Search Filter Input */}
+      <div className="mb-6">
+        <input
+          value={query || ''}
+          onChange={(e) => {
+            // Update URL -> Triggers Loader -> Updates Data
+            navigate({
+              search: (prev) => ({ ...prev, query: e.target.value }),
+              replace: true, // Don't stack history entries
+            });
+          }}
+          placeholder="Filter features..."
+          className="w-full border p-2 rounded bg-gray-50"
+        />
+      </div>
 
       <ul className="space-y-2">
         {features.map((feature) => (
