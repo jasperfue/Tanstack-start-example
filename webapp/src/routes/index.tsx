@@ -1,6 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { getFeatures } from '../utils/mock-db';
+import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { getFeatures, createFeature } from '../utils/mock-db';
 import { createServerFn } from '@tanstack/react-start';
+import { useState } from 'react';
 
 // 1. Define Server Function
 const fetchFeatures = createServerFn({ method: 'GET' }).handler(async () => {
@@ -9,6 +10,14 @@ const fetchFeatures = createServerFn({ method: 'GET' }).handler(async () => {
   return data;
 });
 
+// NEW: Server Function for mutation
+const addFeatureFn = createServerFn({ method: 'POST' })
+  .inputValidator((title: string) => title)
+  .handler(async ({ data: title }) => {
+    console.log('Creating feature:', title);
+    await createFeature(title);
+  });
+
 // 2. Configure Route
 export const Route = createFileRoute('/')({
   loader: async () => await fetchFeatures(),
@@ -16,8 +25,10 @@ export const Route = createFileRoute('/')({
 });
 
 function FeatureBoard() {
-  // 3. Consume Data (Type-safe!)
   const features = Route.useLoaderData();
+  const router = useRouter();
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <div className="p-4 max-w-lg mx-auto">
@@ -34,6 +45,38 @@ function FeatureBoard() {
           </li>
         ))}
       </ul>
+
+      {/* NEW: Simple Form */}
+      <form
+        className="mt-8 flex gap-2"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setIsLoading(true);
+          if (!input) return;
+
+          // Call Server Function directly
+          await addFeatureFn({ data: input });
+
+          // Clear input and refresh data
+          setInput('');
+          router.invalidate();
+          setIsLoading(false);
+        }}
+      >
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="New feature name..."
+          className="border p-2 flex-1 rounded"
+        />
+        <button
+          type="submit"
+          className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Adding...' : 'Add'}
+        </button>
+      </form>
     </div>
   );
 }
