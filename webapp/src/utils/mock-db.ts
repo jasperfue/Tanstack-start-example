@@ -26,3 +26,8 @@ export async function createFeature(title: string) {
   features.push(newFeature);
   return newFeature;
 }
+
+export async function getFeatureById(id: string) {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  return features.find((feature) => feature.id === id);
+}

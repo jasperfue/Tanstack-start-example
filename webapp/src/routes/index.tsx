@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { createFileRoute, useRouter, Link } from '@tanstack/react-router';
 import { getFeatures, createFeature } from '../utils/mock-db';
 import { createServerFn } from '@tanstack/react-start';
 import { useState } from 'react';
@@ -36,13 +36,16 @@ function FeatureBoard() {
 
       <ul className="space-y-2">
         {features.map((feature) => (
-          <li
+          <Link
+            preload="intent"
+            to="/feature/$featureId"
+            params={{ featureId: feature.id }}
             key={feature.id}
             className="border p-2 rounded flex justify-between"
           >
             <span>{feature.title}</span>
             <span className="font-bold">{feature.votes} votes</span>
-          </li>
+          </Link>
         ))}
       </ul>
 
