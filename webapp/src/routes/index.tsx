@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter, Link } from '@tanstack/react-router';
 import { getFeatures, createFeature } from '../utils/mock-db';
 import { createServerFn } from '@tanstack/react-start';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
 
 // UPDATED: Server Function with filtering logic
@@ -52,6 +52,25 @@ function FeatureBoard() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [searchValue, setSearchValue] = useState(query);
+
+  useEffect(() => {
+    // Don't navigate if the value hasn't changed from the URL
+    if (searchValue === query) return;
+
+    const timeoutId = setTimeout(() => {
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          query: searchValue || undefined,
+        }),
+        replace: true,
+      });
+    }, 350); // Wait 350ms after last keystroke
+
+    return () => clearTimeout(timeoutId);
+  }, [searchValue, navigate, query]);
+
   return (
     <div className="p-4 max-w-lg mx-auto">
       <h1 className="text-2xl font-bold mb-4">Feature Board</h1>
@@ -59,14 +78,8 @@ function FeatureBoard() {
       {/* NEW: Search Filter Input */}
       <div className="mb-6">
         <input
-          value={query || ''}
-          onChange={(e) => {
-            // Update URL -> Triggers Loader -> Updates Data
-            navigate({
-              search: (prev) => ({ ...prev, query: e.target.value }),
-              replace: true, // Don't stack history entries
-            });
-          }}
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
           placeholder="Filter features..."
           className="w-full border p-2 rounded bg-gray-50"
         />
